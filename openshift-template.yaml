@@ -1,0 +1,230 @@
+apiVersion: v1
+items:
+  # IMAGE STREAM
+  - apiVersion: image.openshift.io/v1
+    kind: ImageStream
+    metadata:
+      labels:
+        app: simple-dotnet-service
+      name: simple-dotnet-service
+    spec:
+      lookupPolicy:
+        local: false
+  # BUILD CONFIG
+  - apiVersion: build.openshift.io/v1
+    kind: BuildConfig
+    metadata:
+      labels:
+        app: simple-dotnet-service
+      name: simple-dotnet-service
+    spec:
+      failedBuildsHistoryLimit: 5
+      nodeSelector: null
+      output:
+        to:
+          kind: ImageStreamTag
+          name: simple-dotnet-service:latest
+      postCommit: {}
+      resources: {}
+      runPolicy: Serial
+      source:
+        dockerfile: |-
+          FROM mcr.microsoft.com/dotnet/core/sdk:2.2-alpine3.9 AS builder
+          WORKDIR /app
+
+          # Copy csproj and restore as distinct layers
+          COPY *.csproj ./
+          RUN dotnet restore
+
+          # Copy everything else and build
+          COPY . ./
+          RUN dotnet publish -c Release -o out
+
+          # Build runtime image
+          FROM mcr.microsoft.com/dotnet/core/aspnet:2.2-alpine3.9
+          WORKDIR /app
+          COPY --from=builder /app/out .
+          LABEL io.k8s.display-name="app name" \
+          io.k8s.description="container description..." \
+          io.openshift.expose-services="8080:http"
+          EXPOSE 8080
+          ENV ASPNETCORE_URLS=http://*:8080
+          ENTRYPOINT ["dotnet", "hello-world.dll"]
+        git:
+          ref: master
+          uri: https://github.com/in-the-keyhole/simple-dotnet-service.git
+        type: Git
+      strategy:
+        dockerStrategy:
+          noCache: true
+        type: Docker
+      successfulBuildsHistoryLimit: 5
+      triggers: []
+  # DEPLOYMENT CONFIG
+  - apiVersion: apps.openshift.io/v1
+    kind: DeploymentConfig
+    metadata:
+      labels:
+        app: simple-dotnet-service
+      name: simple-dotnet-service
+    spec:
+      replicas: 1
+      revisionHistoryLimit: 10
+      selector:
+        deploymentconfig: simple-dotnet-service
+      strategy:
+        activeDeadlineSeconds: 21600
+        resources: {}
+        rollingParams:
+          intervalSeconds: 1
+          maxSurge: 25%
+          maxUnavailable: 25%
+          timeoutSeconds: 600
+          updatePeriodSeconds: 1
+        type: Rolling
+      template:
+        metadata:
+          labels:
+            app: simple-dotnet-service
+            deploymentconfig: simple-dotnet-service
+        spec:
+          containers:
+            - image: simple-dotnet-service:latest
+              imagePullPolicy: Always
+              name: simple-dotnet-service
+              ports:
+                - containerPort: 8080
+                  protocol: TCP
+              resources: {}
+              terminationMessagePath: /dev/termination-log
+              terminationMessagePolicy: File
+          dnsPolicy: ClusterFirst
+          restartPolicy: Always
+          schedulerName: default-scheduler
+          securityContext: {}
+          terminationGracePeriodSeconds: 30
+      test: false
+      triggers:
+        - imageChangeParams:
+            containerNames:
+              - simple-dotnet-service
+            from:
+              kind: ImageStreamTag
+              name: simple-dotnet-service:latest
+          type: ImageChange
+  # PIPELINE
+  - apiVersion: v1
+    kind: BuildConfig
+    metadata:
+      labels:
+        app: simple-dotnet-service
+      name: simple-dotnet-service-pipeline
+      annotations:
+        pipeline.alpha.openshift.io/uses:
+          [{ "name": "simple-dotnet-service", "kind": "DeploymentConfig" }]
+    spec:
+      failedBuildsHistoryLimit: 5
+      nodeSelector: null
+      output: {}
+      postCommit: {}
+      resources: {}
+      runPolicy: Serial
+      source:
+        git:
+          ref: master
+          uri: https://github.com/in-the-keyhole/simple-dotnet-service.git
+        sourceSecret:
+          name: git-credentials
+        type: Git
+      strategy:
+        jenkinsPipelineStrategy:
+          jenkinsfile: >
+            pipeline {
+              agent { node { label 'maven' } }
+              stages {
+                stage('Fetch Source') {
+                  steps {
+                    git url: 'https://github.com/in-the-keyhole/simple-dotnet-service.git', branch: 'master'
+                  }
+                }
+                
+                //stage('Unit Testing') {
+                //  steps {
+                //    
+                //  }
+                //}
+
+                stage('Build Image') {
+                  steps {
+                    script {
+                      openshift.withCluster() {
+                        openshift.withProject("development") {
+                          openshift.selector("bc", "simple-dotnet-service").startBuild("--wait")
+                        }
+                      }
+                    }
+                  }
+                }
+                stage('Deploy') {
+                  steps {
+                    script {
+                      openshift.withCluster() {
+                        openshift.withProject("development") {
+                          def dc = openshift.selector("dc", "simple-dotnet-service")
+                          def rm = dc.rollout().latest()
+                          dc.rollout().status()
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        type: JenkinsPipeline
+      successfulBuildsHistoryLimit: 5
+      triggers:
+        - github:
+            secretReference:
+              name: github
+          type: GitHub
+  # SERVICE
+  - apiVersion: v1
+    kind: Service
+    metadata:
+      labels:
+        app: simple-dotnet-service
+      name: simple-dotnet-service
+    spec:
+      ports:
+        - name: 8080-tcp
+          port: 8080
+          protocol: TCP
+          targetPort: 8080
+      selector:
+        deploymentconfig: simple-dotnet-service
+      sessionAffinity: None
+      type: ClusterIP
+    status:
+      loadBalancer: {}
+  - apiVersion: route.openshift.io/v1
+    kind: Route
+    metadata:
+      labels:
+        app: simple-dotnet-service
+      name: simple-dotnet-service
+    spec:
+      port:
+        targetPort: 8080-tcp
+      subdomain: ""
+      tls:
+        insecureEdgeTerminationPolicy: None
+        termination: edge
+      to:
+        kind: Service
+        name: simple-dotnet-service
+        weight: 100
+      wildcardPolicy: None
+kind: List
+metadata:
+  resourceVersion: ""
+  selfLink: ""
