@@ -8,14 +8,15 @@ namespace simple_dotnet_service.Controllers
 {
     [Route("api/v1/[controller]")]
     [ApiController]
+    [Produces("application/json")]
     public class HelloController : ControllerBase
     {
 
         // GET api/hello
         [HttpGet]
-        public ActionResult<string> Get([FromQuery(Name = "name")] String name)
+        public Response Get([FromQuery(Name = "name")] String name)
         {
-            return "Hello " + name + " from .NET Core";
+            return new Response() { Greeting = "Hello " + name + " from .NET Core"};
         }
 
         // POST api/hello
