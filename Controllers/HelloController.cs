@@ -6,20 +6,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace simple_dotnet_service.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/v1/[controller]")]
     [ApiController]
     public class HelloController : ControllerBase
     {
-        // GET api/hello
-        [HttpGet]
-        public ActionResult<string> Get()
-        {
-            return "Hello from .NET Core";
-        }
 
         // GET api/hello
-        [HttpGet("{name}")]
-        public ActionResult<string> Get(String name)
+        [HttpGet]
+        public ActionResult<string> Get([FromQuery(Name = "name")] String name)
         {
             return "Hello " + name + " from .NET Core";
         }
