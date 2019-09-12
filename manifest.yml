@@ -1,5 +1,5 @@
 ---
 applications:
-  - name: dotnet-simple-service
+  - name: simple-dotnet-service
     buildpack: dotnet_core_buildpack
     memory: 256M

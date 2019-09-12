@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.2</TargetFramework>
     <AspNetCoreHostingModel>InProcess</AspNetCoreHostingModel>
-    <RootNamespace>hello_world</RootNamespace>
+    <RootNamespace>simple_dotnet_service</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

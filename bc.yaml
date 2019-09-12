@@ -34,7 +34,7 @@ spec:
       FROM mcr.microsoft.com/dotnet/core/aspnet:2.2
       WORKDIR /app
       COPY --from=builder /app/out .
-      ENTRYPOINT ["dotnet", "hello-world.dll"]
+      ENTRYPOINT ["dotnet", "simple-dotnet-service.dll"]
     type: Dockerfile
   strategy:
     dockerStrategy:

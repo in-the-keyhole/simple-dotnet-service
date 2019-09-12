@@ -49,7 +49,7 @@ items:
           io.openshift.expose-services="8080:http"
           EXPOSE 8080
           ENV ASPNETCORE_URLS=http://*:8080
-          ENTRYPOINT ["dotnet", "hello-world.dll"]
+          ENTRYPOINT ["dotnet", "simple-dotnet-service.dll"]
         git:
           ref: master
           uri: https://github.com/in-the-keyhole/simple-dotnet-service.git
