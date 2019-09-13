@@ -16,7 +16,7 @@ namespace simple_dotnet_service.Controllers
         [HttpGet]
         public Response Get([FromQuery(Name = "name")] String name)
         {
-            return new Response() { Greeting = "Hello " + name + " from .NET Core"};
+            return new Response() { Greeting = "Hello " + name + " from .NET Core!"};
         }
 
         // POST api/hello
