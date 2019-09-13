@@ -147,13 +147,6 @@ items:
                     git url: 'https://github.com/in-the-keyhole/simple-dotnet-service.git', branch: 'master'
                   }
                 }
-                
-                //stage('Unit Testing') {
-                //  steps {
-                //    
-                //  }
-                //}
-
                 stage('Build Image') {
                   steps {
                     script {
@@ -206,6 +199,7 @@ items:
       type: ClusterIP
     status:
       loadBalancer: {}
+  # ROUTE
   - apiVersion: route.openshift.io/v1
     kind: Route
     metadata:
